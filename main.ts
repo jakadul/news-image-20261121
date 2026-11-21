@@ -17,5 +17,16 @@ const isJpeg = head[0] === 0xff && head[1] === 0xd8;
 if (!isPng && !isJpeg) throw new Error('entry.png is neither a PNG nor a JPEG');
 if (bytes > 1048576) throw new Error(`entry.png is ${bytes} bytes, over the 1 MiB cap`);
 
+// The gate also caps the pixel size at 1024x1024: read it straight out of the
+// PNG's IHDR chunk rather than trusting the file we drew.
+if (isPng) {
+  const buf = readFileSync(SRC);
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  if (width > 1024 || height > 1024) {
+    throw new Error(`entry.png is ${width}x${height}, over the 1024x1024 cap`);
+  }
+}
+
 mkdirSync(OUTPUT_DIR, { recursive: true });
 copyFileSync(SRC, join(OUTPUT_DIR, 'entry.png'));
